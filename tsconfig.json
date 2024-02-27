@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "strict": true,
+    "allowJs": false,
+    "strictNullChecks": true,
+    "module": "nodenext",
+    "sourceMap": true,
+  },
+  "files": [
+    "signaling-server.ts"
+  ],
+
+}

@@ -1,0 +1,22 @@
+{
+  "name": "pal-rtc",
+  "version": "1.0.0",
+  "description": "\"webrtc using websocket for signaling\"",
+  "main": "../signaling-server.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sareena Razak",
+  "license": "MIT",
+  "dependencies": {
+    "nanoid": "^5.0.6",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.10",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0"
+  }
+}
