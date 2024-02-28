@@ -1,5 +1,7 @@
 ### Config
 * set up eslint and prettier
+* * checkout ts-node
+* TS config - common/good practices
   ~~* Set up directory - check ts convention~~
   ~~* Change package name~~
   ~~* Create a new git repo~~
@@ -17,3 +19,5 @@
 * Send `icecandidate` and implement message handling
 * Add event handling for send and receive channel events 
 * Write test cases --> unsure when or how to go about testing 
+
+### Node
