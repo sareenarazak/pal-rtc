@@ -1,13 +1,8 @@
 import { WebSocket, WebSocketServer } from "ws";
 import { nanoid } from "nanoid";
-import { Message } from "./types.js";
+import {ClientMessage, Message} from "./types.js";
 
 const PORT_NUMBER = 8080;
-
-type ClientMessage = {
-    type: string;
-    destinationId: string;
-}
 
 const wsServer = new WebSocketServer({ port : PORT_NUMBER });
 const clientIdConnMap = new Map();
@@ -26,9 +21,8 @@ wsServer.on("connection", (wsConnection: WebSocket) => {
         console.log(`Message received from client ${message}`);
         try {
             const messageData = JSON.parse(message);
-            if (isClientMessage(messageData)) {
-                handleClientMessage(messageData);
-            }
+            handleClientMessage(messageData);
+
         } catch (error) {
             if (error instanceof Error) {
                 console.error(`Error while handling client message Error : ${error.message}`);
@@ -85,7 +79,7 @@ function broadCastToPeers(except: string, type: "new-pal" | "bye-pal") {
             }));
 }
 
-function sendToClient(clientId: string, data: Message | ClientMessage) {
+function sendToClient(clientId: string, data: Message) {
     const connection = clientIdConnMap.get(clientId);
     if (connection) {
         const message = JSON.stringify(data);
@@ -97,10 +91,6 @@ function sendToClient(clientId: string, data: Message | ClientMessage) {
 }
 
 function handleClientMessage(clientMessage: ClientMessage) {
-    const destinationId = clientMessage.destinationId;
+    const destinationId = clientMessage.data.destinationId;
     sendToClient(destinationId, clientMessage);
-}
-
-function isClientMessage(message: any): message is ClientMessage {
-    return (message as ClientMessage).destinationId !== undefined;
 }

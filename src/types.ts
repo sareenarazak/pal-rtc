@@ -1,4 +1,4 @@
-export type Message = {
+export type ServerMessage = {
     type: "welcome";
     data: {
         selfId: string;
@@ -9,4 +9,22 @@ export type Message = {
     data: {
         id: string;
     }
-};
+}
+
+export type ClientMessage = {
+    type: "offer" | "answer";
+    data: {
+        destinationId: string;
+        clientId: string;
+        description: RTCSessionDescription;
+    }
+} | {
+    type: "icecandidate";
+    destinationId: string;
+    data: {
+        destinationId: string;
+        candidate: RTCIceCandidate;
+    }
+}
+
+export type Message = ServerMessage | ClientMessage;

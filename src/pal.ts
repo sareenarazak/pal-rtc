@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     disconnectBtn.addEventListener("click", () => {
-        disconnect.call(disconnectBtn, connectBtn)
+        disconnect.call(disconnectBtn, connectBtn);
     });
 
     // TODO : change this to some event that only triggers once
@@ -61,11 +61,11 @@ function connect(this: HTMLButtonElement, disconnBtn: HTMLButtonElement) {
         this.disabled = true;
         disconnBtn.disabled = false;
 
-        ws.addEventListener("message", (event: MessageEvent) => {
+        ws.addEventListener("message", async (event: MessageEvent) => {
             try {
                 console.log(`Received message from server ${event.data}`);
                 const message: Message = JSON.parse(event.data);
-                handleMessage(message);
+                await handleMessage(message);
             } catch (error) {
                 if (error instanceof Error) {
                     console.error(`Error while handling message from server Error : ${error.message}`);
@@ -78,7 +78,7 @@ function connect(this: HTMLButtonElement, disconnBtn: HTMLButtonElement) {
     ws.addEventListener("close", () => {
         console.log("Disconnected from web socket server");
     });
-}
+};
 
 function disconnect(this: HTMLButtonElement, connBtn: HTMLButtonElement) {
     ws.close();
@@ -86,7 +86,7 @@ function disconnect(this: HTMLButtonElement, connBtn: HTMLButtonElement) {
     connBtn.disabled = false;
 }
 
-function handleMessage(message : Message) {
+async function handleMessage(message : Message) {
     const { type, data } = message;
     switch (type) {
         case "welcome":
@@ -104,6 +104,20 @@ function handleMessage(message : Message) {
             console.log(`Removed peer id ${data.id}`);
             break;
 
+        case "offer" :
+            console.log(`Got and offer from ${data.clientId} , offer is : ${data.description}`)
+            try {
+                if(!peerConn.peerConnection) {
+                   createPeerConnection();
+                }
+                const peerConnection = peerConn.peerConnection as RTCPeerConnection;
+                await setRemoteDescription(peerConnection, data.description);
+                await createAndSendAnswer(peerConnection, data.clientId);
+
+            } catch (error) {
+                console.log(`Error handling incoming offer: ${error}`);
+            }
+            break;
         default:
             throw new Error(`Unsupported message type ${type}`);
     }
@@ -140,10 +154,9 @@ function createAndSendOffer() {
                 const peerConnection = peerConn.peerConnection as RTCPeerConnection;
                 ws.send(JSON.stringify({
                     type: "offer",
-                    // Bad :/
-                    destinationId: clientConfig.peerClientIds.keys().next().value,
                     data: {
-                        offeringId: clientConfig.clientId,
+                        clientId: clientConfig.clientId,
+                        destinationId: clientConfig.peerClientIds.keys().next().value, // Bad :/
                         description: peerConnection.localDescription
                     }
                 }));
@@ -153,6 +166,18 @@ function createAndSendOffer() {
             });
 }
 
+    async function createAndSendAnswer(peerConn: RTCPeerConnection, destinationId:string) {
+        const answer = await peerConn.createAnswer();
+        await peerConn.setLocalDescription(answer);
+        ws.send(JSON.stringify({
+            type : "answer",
+            data : {
+                clientId: clientConfig.clientId,
+                destinationId: destinationId,
+                description: peerConn.localDescription
+            }
+        }));
+    }
 async function createOffer() {
     console.log("Creating Offer");
     try {
@@ -165,4 +190,8 @@ async function createOffer() {
     } catch (error) {
         console.log(`Error while sending local description to the websocket server ${error}`);
     }
+}
+
+async function setRemoteDescription(peerConn: RTCPeerConnection, description: RTCSessionDescription) {
+    await peerConn.setRemoteDescription(description);
 }
