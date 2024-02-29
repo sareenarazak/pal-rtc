@@ -20,7 +20,6 @@ export type ClientMessage = {
     }
 } | {
     type: "icecandidate";
-    destinationId: string;
     data: {
         destinationId: string;
         candidate: RTCIceCandidate;

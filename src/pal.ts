@@ -1,4 +1,4 @@
-import {Message} from "./types.js";
+import { ClientMessage, Message } from "./types.js";
 
 type ClientConfig = {
     clientId: string | undefined;
@@ -153,6 +153,7 @@ function createPeerConnection() {
     if (!peerConn.peerConnection) {
         const peerConnection = new RTCPeerConnection(config)
         peerConnection.addEventListener("negotiationneeded",  createAndSendOffer);
+        peerConnection.addEventListener("icecandidate", sendIceCandidateToPeer);
         peerConn.peerConnection = peerConnection;
     }
     return peerConn.peerConnection;
@@ -164,14 +165,16 @@ function createAndSendOffer() {
         createOffer()
             .then(() => {
                 const peerConnection = peerConn.peerConnection as RTCPeerConnection;
-                ws.send(JSON.stringify({
-                    type: "offer",
-                    data: {
-                        clientId: clientConfig.clientId,
-                        destinationId: clientConfig.peerClientIds.keys().next().value, // Bad :/
-                        description: peerConnection.localDescription
-                    }
-                }));
+                if (peerConnection.localDescription && clientConfig.clientId) {
+                    sendToSignalingServer({
+                        type: "offer",
+                        data: {
+                            clientId: clientConfig.clientId,
+                            destinationId: clientConfig.peerClientIds.keys().next().value, // Bad :/
+                            description: peerConnection.localDescription
+                        }
+                    });
+                }
             })
             .catch(error => {
                 console.log(`Error creating offer: ${error}`);
@@ -181,14 +184,16 @@ function createAndSendOffer() {
 async function createAndSendAnswer(peerConn: RTCPeerConnection, destinationId:string) {
     const answer = await peerConn.createAnswer();
     await peerConn.setLocalDescription(answer);
-    ws.send(JSON.stringify({
-        type : "answer",
-        data : {
-            clientId: clientConfig.clientId,
-            destinationId: destinationId,
-            description: peerConn.localDescription
-        }
-    }));
+    if (peerConn.localDescription && clientConfig.clientId) {
+        sendToSignalingServer({
+            type: "answer",
+            data: {
+                clientId: clientConfig.clientId,
+                destinationId: destinationId,
+                description: peerConn.localDescription
+            }
+        });
+    }
 }
 async function createOffer() {
     console.log("Creating Offer");
@@ -206,4 +211,25 @@ async function createOffer() {
 
 async function setRemoteDescription(peerConn: RTCPeerConnection, description: RTCSessionDescription) {
     await peerConn.setRemoteDescription(description);
+}
+
+async function sendIceCandidateToPeer(event: RTCPeerConnectionIceEvent) {
+    console.log("Ice candidate event received");
+    console.log(`Sending to client ${clientConfig.peerClientIds.keys().next().value}`);
+
+    const destinationId = peerConn.destinationId;
+    const iceCandidate = event.candidate;
+    if (iceCandidate && destinationId) {
+        sendToSignalingServer({
+            type: "icecandidate",
+            data: {
+                destinationId: destinationId,
+                candidate: iceCandidate
+            }
+        });
+    }
+}
+
+function sendToSignalingServer(message: ClientMessage) {
+    ws.send(JSON.stringify(message));
 }
