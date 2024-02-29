@@ -118,6 +118,18 @@ async function handleMessage(message : Message) {
                 console.log(`Error handling incoming offer: ${error}`);
             }
             break;
+
+        case "answer":
+            try {
+                console.log(`Got and answer from ${data.destinationId} , offer is : ${JSON.stringify(data.description)}`);
+                const peerConnection = peerConn.peerConnection as RTCPeerConnection;
+                peerConn.destinationId = data.clientId;
+                await setRemoteDescription(peerConnection, data.description);
+            } catch (error) {
+                console.log(`Error handling incoming answer: ${error}`);
+            }
+            break;
+
         default:
             throw new Error(`Unsupported message type ${type}`);
     }
