@@ -1,3 +1,8 @@
+### Mani 
+* Finish message sending 
+* Change how I do `type` for `ClientConfig` and `PeerConnection`
+* Set up a quick UI - tailwind 
+
 ### Config
   * set up eslint and prettier
   * checkout ts-node

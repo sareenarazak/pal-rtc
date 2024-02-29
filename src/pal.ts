@@ -178,18 +178,18 @@ function createAndSendOffer() {
             });
 }
 
-    async function createAndSendAnswer(peerConn: RTCPeerConnection, destinationId:string) {
-        const answer = await peerConn.createAnswer();
-        await peerConn.setLocalDescription(answer);
-        ws.send(JSON.stringify({
-            type : "answer",
-            data : {
-                clientId: clientConfig.clientId,
-                destinationId: destinationId,
-                description: peerConn.localDescription
-            }
-        }));
-    }
+async function createAndSendAnswer(peerConn: RTCPeerConnection, destinationId:string) {
+    const answer = await peerConn.createAnswer();
+    await peerConn.setLocalDescription(answer);
+    ws.send(JSON.stringify({
+        type : "answer",
+        data : {
+            clientId: clientConfig.clientId,
+            destinationId: destinationId,
+            description: peerConn.localDescription
+        }
+    }));
+}
 async function createOffer() {
     console.log("Creating Offer");
     try {
