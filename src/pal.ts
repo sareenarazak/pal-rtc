@@ -130,6 +130,14 @@ async function handleMessage(message : Message) {
             }
             break;
 
+        case "icecandidate":
+            console.log(`Received ice candidata ${JSON.stringify(data.candidate)}`);
+            const peerConnection = peerConn.peerConnection as RTCPeerConnection;
+            await peerConnection.addIceCandidate(data.candidate);
+            break;
+
+
+
         default:
             throw new Error(`Unsupported message type ${type}`);
     }
