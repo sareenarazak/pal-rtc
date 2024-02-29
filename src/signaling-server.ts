@@ -4,7 +4,6 @@ import { Message } from "./types.js";
 
 const PORT_NUMBER = 8080;
 
-
 type ClientMessage = {
     type: string;
     destinationId: string;
@@ -21,7 +20,6 @@ wsServer.on("connection", (wsConnection: WebSocket) => {
     console.log("New client connection");
     let clientId = nanoid();
     clientIdConnMap.set(clientId, wsConnection);
-
     handleNewConnection(clientId);
 
     wsConnection.on("message", (message: string) => {

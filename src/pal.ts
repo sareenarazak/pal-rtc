@@ -14,13 +14,15 @@ type PeerConnection = {
     peerConnection: RTCPeerConnection | undefined;
     destinationId: string | undefined;
     dataChannel: RTCDataChannel | undefined;
-}
+};
 
 const peerConn: PeerConnection = {
     peerConnection: undefined,
     destinationId: undefined,
     dataChannel: undefined
-}
+};
+
+const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }]};
 
 let ws: WebSocket;
 
@@ -108,14 +110,59 @@ function handleMessage(message : Message) {
 }
 
 function sendToPal(this:HTMLButtonElement, message: string) {
-    const peerConnection = peerConn.peerConnection;
-    if (peerConnection && peerConnection.connectionState === "connected") {
-        if (clientConfig.peerClientIds.size !== 0) {
-            // TODO : Add data channel creation
-        } else {
-            console.log("No peers yet");
-        }
-    } else {
-        console.log(message);
+    if (clientConfig.peerClientIds.size === 0) {
+        console.log("No peers yet");
+        return;
+    }
+
+    const peerConnection = createPeerConnection();
+
+    console.log("Creating data channel");
+    // Triggers negotiationneeded event
+    let dataChannel = peerConnection.createDataChannel("message-pal");
+
+}
+
+function createPeerConnection() {
+    if (!peerConn.peerConnection) {
+        const peerConnection = new RTCPeerConnection(config)
+        peerConnection.addEventListener("negotiationneeded",  createAndSendOffer);
+        peerConn.peerConnection = peerConnection;
+    }
+    return peerConn.peerConnection;
+}
+
+function createAndSendOffer() {
+        console.log("Negotiation needed event ");
+        console.log("Destination client id " , clientConfig.peerClientIds.keys().next());
+        createOffer()
+            .then(() => {
+                const peerConnection = peerConn.peerConnection as RTCPeerConnection;
+                ws.send(JSON.stringify({
+                    type: "offer",
+                    // Bad :/
+                    destinationId: clientConfig.peerClientIds.keys().next().value,
+                    data: {
+                        offeringId: clientConfig.clientId,
+                        description: peerConnection.localDescription
+                    }
+                }));
+            })
+            .catch(error => {
+                console.log(`Error creating offer: ${error}`);
+            });
+}
+
+async function createOffer() {
+    console.log("Creating Offer");
+    try {
+        const peerConnection = peerConn.peerConnection as RTCPeerConnection;
+        const offer = await peerConnection.createOffer();
+        console.log("offer created ");
+        console.log(JSON.stringify(offer));
+        console.log("Setting local descriptor");
+        await peerConnection.setLocalDescription(offer);
+    } catch (error) {
+        console.log(`Error while sending local description to the websocket server ${error}`);
     }
 }
