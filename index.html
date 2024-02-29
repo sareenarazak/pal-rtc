@@ -7,12 +7,13 @@
 <body>
     <div id="connect-sec">
         <button id="ws-connect">Connect</button>
-        <button id="ws-disconnect">Disconnect</button>
+        <button id="ws-disconnect" disabled="disabled">Disconnect</button>
     </div>
     <div>
-        <label for="ws-text">Text</label>
-        <textarea id="ws-text"></textarea>
+        <label for="ws-text">Message</label>
+        <textarea id="ws-text" placeholder="Type your message"></textarea>
     </div>
+    <button id="send-message" disabled="disabled">Send</button>
 
     <script type="module" src="src/pal.js"></script>
 </body>
