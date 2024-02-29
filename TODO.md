@@ -1,7 +1,7 @@
 ### Config
 * set up eslint and prettier
-* * checkout ts-node
-* TS config - common/good practices
+* checkout ts-node
+* ts-watch set up 
   ~~* Set up directory - check ts convention~~
   ~~* Change package name~~
   ~~* Create a new git repo~~
@@ -12,7 +12,10 @@
 * Write test for the server code
 
 ### Client
-* Implement connect and disconnect handler to websocket server
+~~* Implement connect and disconnect handler to websocket server~~
+  *  Do I do function.call when passing arguments for event handling 
+  * Check how best to declare the clientconfig type 
+
 * Add message handling for `welcome` , `new-pal` and `bye-pal` messages
 * Send `offer` to peer when user adds input to `textArea`
 * Implement `answer` flow 

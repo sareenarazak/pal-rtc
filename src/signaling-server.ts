@@ -1,19 +1,9 @@
-import {WebSocket, WebSocketServer} from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import { nanoid } from "nanoid";
+import { Message } from "./types.js";
 
 const PORT_NUMBER = 8080;
-type Message = {
-    type: "welcome";
-    data: {
-        selfId: string;
-        otherIds: string[];
-    }
-} | {
-    type: "new-pal" | "bye-pal";
-    data: {
-        id: string;
-    }
-};
+
 
 type ClientMessage = {
     type: string;
@@ -29,14 +19,17 @@ wsServer.on("listening", () => {
 
 wsServer.on("connection", (wsConnection: WebSocket) => {
     console.log("New client connection");
-    handleNewConnection(wsConnection);
+    let clientId = nanoid();
+    clientIdConnMap.set(clientId, wsConnection);
 
-    wsConnection.on("message",  (message: string) => {
+    handleNewConnection(clientId);
+
+    wsConnection.on("message", (message: string) => {
         console.log(`Message received from client ${message}`);
         try {
             const messageData = JSON.parse(message);
             if (isClientMessage(messageData)) {
-            handleClientMessage(messageData);
+                handleClientMessage(messageData);
             }
         } catch (error) {
             if (error instanceof Error) {
@@ -46,23 +39,21 @@ wsServer.on("connection", (wsConnection: WebSocket) => {
     });
 
     wsConnection.on("error", console.error);
-});
 
-wsServer.on("close", (clientId: string) => {
-    console.log(`Request to close connection from ${clientId}`);
-    try {
-        console.log(`Client ${clientId} disconnected`);
-        handleCloseConnection(clientId);
-    } catch (error) {
-        if (error instanceof Error) {
-            console.error(`Error while disconnecting client ${clientId} Error : ${error.message}`);
+    wsConnection.on("close", () => {
+        console.log(`Request to close connection from ${clientId}`);
+        try {
+            console.log(`Client ${clientId} disconnected`);
+            handleCloseConnection(clientId);
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error(`Error while disconnecting client ${clientId} Error : ${error.message}`);
+            }
         }
-    }
+    });
 });
 
-function handleNewConnection(connection: WebSocket) {
-    let clientId = nanoid();
-    clientIdConnMap.set(clientId, connection);
+function handleNewConnection(clientId: string) {
     console.log(`Assigning client ID ${clientId}`);
     sendWelcomeMessage(clientId);
     broadCastToPeers(clientId, "new-pal");

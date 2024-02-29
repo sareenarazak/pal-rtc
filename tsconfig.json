@@ -5,10 +5,10 @@
     "allowJs": false,
     "strictNullChecks": true,
     "module": "nodenext",
-    "sourceMap": true,
+    "sourceMap": true
   },
-  "files": [
-    "signaling-server.ts"
+  "include": [
+    "src/",
   ],
 
 }
