@@ -1,4 +1,4 @@
-import { ClientMessage, Message } from "./types.js";
+import {ClientMessage, Message} from "./types.js";
 
 type ClientConfig = {
     clientId: string | undefined;
@@ -131,7 +131,7 @@ async function handleMessage(message : Message) {
             break;
 
         case "icecandidate":
-            console.log(`Received ice candidata ${JSON.stringify(data.candidate)}`);
+            console.log(`Received ice candidate ${JSON.stringify(data.candidate)}`);
             const peerConnection = peerConn.peerConnection as RTCPeerConnection;
             await peerConnection.addIceCandidate(data.candidate);
             break;
@@ -149,12 +149,8 @@ function sendToPal(this:HTMLButtonElement, message: string) {
         return;
     }
 
-    const peerConnection = createPeerConnection();
-
-    console.log("Creating data channel");
-    // Triggers negotiationneeded event
-    let dataChannel = peerConnection.createDataChannel("message-pal");
-
+    createPeerConnection();
+    createDataChannel("message-pal");
 }
 
 function createPeerConnection() {
@@ -163,9 +159,7 @@ function createPeerConnection() {
         peerConnection.addEventListener("negotiationneeded",  createAndSendOffer);
         peerConnection.addEventListener("icecandidate", sendIceCandidateToPeer);
         peerConn.peerConnection = peerConnection;
-    }
-    return peerConn.peerConnection;
-}
+    }}
 
 function createAndSendOffer() {
         console.log("Negotiation needed event ");
@@ -217,6 +211,22 @@ async function createOffer() {
     }
 }
 
+function createDataChannel(label:string) {
+    console.log("Creating data channel");
+    const peerConnection = peerConn.peerConnection as RTCPeerConnection;
+
+    // Triggers negotiationneeded event
+    const dataChannel = peerConnection.createDataChannel(label);
+    peerConn.dataChannel = dataChannel;
+
+    // Sender channel listeners
+    dataChannel.addEventListener("open", handleSendChannelStatusChange);
+    dataChannel.addEventListener("close", handleSendChannelStatusChange);
+
+    // Add receive channel request handler
+    peerConnection.addEventListener("datachannel", receiveChannelCallback);
+}
+
 async function setRemoteDescription(peerConn: RTCPeerConnection, description: RTCSessionDescription) {
     await peerConn.setRemoteDescription(description);
 }
@@ -240,4 +250,35 @@ async function sendIceCandidateToPeer(event: RTCPeerConnectionIceEvent) {
 
 function sendToSignalingServer(message: ClientMessage) {
     ws.send(JSON.stringify(message));
+}
+
+function handleSendChannelStatusChange(this: RTCDataChannel, event: Event) {
+    if (this.readyState === "open") {
+        console.log("Message send channel is open");
+        console.log("Sending hello message");
+        this.send("HELLO MESSAGE");
+    } else if (this.readyState === "closed") {
+        console.log("Message channel is closed");
+    }
+}
+
+function receiveChannelCallback(this: RTCPeerConnection, event: RTCDataChannelEvent) {
+    const receiveChannel = event.channel;
+    peerConn.dataChannel  = receiveChannel;
+    receiveChannel.addEventListener("message",  handleReceiveMessage);
+    this.addEventListener("open",  handleReceiveChannelStatusChange);
+    this.addEventListener("close",  handleReceiveChannelStatusChange);
+}
+
+function handleReceiveMessage(this:RTCDataChannel, event: MessageEvent) {
+    console.log(`Received event from peer ${event.data}`);
+}
+
+function handleReceiveChannelStatusChange(event: Event) {
+    if (peerConn.dataChannel) {
+        const receiveChannel = peerConn.dataChannel;
+        console.log(
+            `Receive channel's status has changed to ${receiveChannel.readyState}`,
+        );
+    }
 }
