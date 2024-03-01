@@ -110,6 +110,8 @@ async function handleMessage(message : Message) {
                 if(!peerConn.peerConnection) {
                    createPeerConnection();
                 }
+                peerConn.destinationId = data.clientId;
+
                 const peerConnection = peerConn.peerConnection as RTCPeerConnection;
                 await setRemoteDescription(peerConnection, data.description);
                 await createAndSendAnswer(peerConnection, data.clientId);
@@ -134,6 +136,7 @@ async function handleMessage(message : Message) {
             console.log(`Received ice candidate ${JSON.stringify(data.candidate)}`);
             const peerConnection = peerConn.peerConnection as RTCPeerConnection;
             await peerConnection.addIceCandidate(data.candidate);
+
             break;
 
 
@@ -233,8 +236,6 @@ async function setRemoteDescription(peerConn: RTCPeerConnection, description: RT
 
 async function sendIceCandidateToPeer(event: RTCPeerConnectionIceEvent) {
     console.log("Ice candidate event received");
-    console.log(`Sending to client ${clientConfig.peerClientIds.keys().next().value}`);
-
     const destinationId = peerConn.destinationId;
     const iceCandidate = event.candidate;
     if (iceCandidate && destinationId) {
@@ -249,6 +250,7 @@ async function sendIceCandidateToPeer(event: RTCPeerConnectionIceEvent) {
 }
 
 function sendToSignalingServer(message: ClientMessage) {
+    console.log(`Message sent to signaling server  ${JSON.stringify(message)}`);
     ws.send(JSON.stringify(message));
 }
 
@@ -256,7 +258,9 @@ function handleSendChannelStatusChange(this: RTCDataChannel, event: Event) {
     if (this.readyState === "open") {
         console.log("Message send channel is open");
         console.log("Sending hello message");
-        this.send("HELLO MESSAGE");
+       this.send("HELLO MESSAGE");
+        //setTimeout(() => this.send("HELLO MESSAGE"), 2000);
+
     } else if (this.readyState === "closed") {
         console.log("Message channel is closed");
     }
