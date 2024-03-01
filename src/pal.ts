@@ -162,6 +162,11 @@ function createPeerConnection() {
         peerConnection.addEventListener("negotiationneeded",  createAndSendOffer);
         peerConnection.addEventListener("icecandidate", sendIceCandidateToPeer);
         peerConn.peerConnection = peerConnection;
+
+        // Add receive channel request handler
+        // Bug fix for not getting data on receiver side :  moved from createDataChannel() function
+        peerConnection.addEventListener("datachannel", receiveChannelCallback);
+
     }}
 
 function createAndSendOffer() {
@@ -225,9 +230,6 @@ function createDataChannel(label:string) {
     // Sender channel listeners
     dataChannel.addEventListener("open", handleSendChannelStatusChange);
     dataChannel.addEventListener("close", handleSendChannelStatusChange);
-
-    // Add receive channel request handler
-    peerConnection.addEventListener("datachannel", receiveChannelCallback);
 }
 
 async function setRemoteDescription(peerConn: RTCPeerConnection, description: RTCSessionDescription) {
