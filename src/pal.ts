@@ -29,8 +29,9 @@ let ws: WebSocket;
 document.addEventListener("DOMContentLoaded", () => {
     const connectBtn = document.querySelector("#ws-connect") as HTMLButtonElement;
     const disconnectBtn = document.querySelector("#ws-disconnect") as HTMLButtonElement;
-    const textArea = document.querySelector("#ws-text") as HTMLTextAreaElement;
+    const textArea = document.querySelector("#message-pal") as HTMLTextAreaElement;
     const sendBtn = document.querySelector("#send-message") as HTMLButtonElement;
+    const receiveMsg = document.querySelector("#received-msg") as HTMLTextAreaElement;
 
     connectBtn.addEventListener("click", () => {
         connect.call(connectBtn, disconnectBtn);
@@ -109,9 +110,9 @@ async function handleMessage(message : Message) {
             try {
                 if(!peerConn.peerConnection) {
                    createPeerConnection();
+
                 }
                 peerConn.destinationId = data.clientId;
-
                 const peerConnection = peerConn.peerConnection as RTCPeerConnection;
                 await setRemoteDescription(peerConnection, data.description);
                 await createAndSendAnswer(peerConnection, data.clientId);
@@ -136,10 +137,7 @@ async function handleMessage(message : Message) {
             console.log(`Received ice candidate ${JSON.stringify(data.candidate)}`);
             const peerConnection = peerConn.peerConnection as RTCPeerConnection;
             await peerConnection.addIceCandidate(data.candidate);
-
             break;
-
-
 
         default:
             throw new Error(`Unsupported message type ${type}`);
@@ -153,7 +151,7 @@ function sendToPal(this:HTMLButtonElement, message: string) {
     }
 
     createPeerConnection();
-    createDataChannel("message-pal");
+    createDataChannel("message-pal", message);
 }
 
 function createPeerConnection() {
@@ -161,6 +159,11 @@ function createPeerConnection() {
         const peerConnection = new RTCPeerConnection(config)
         peerConnection.addEventListener("negotiationneeded",  createAndSendOffer);
         peerConnection.addEventListener("icecandidate", sendIceCandidateToPeer);
+
+        // Add receive channel request handler
+        // Bug fix for not getting data on receiver side :  moved from createDataChannel() function
+        peerConnection.addEventListener("datachannel", receiveChannelCallback);
+
         peerConn.peerConnection = peerConnection;
     }}
 
@@ -214,8 +217,8 @@ async function createOffer() {
     }
 }
 
-function createDataChannel(label:string) {
-    console.log("Creating data channel");
+function createDataChannel(label:string, message:string) {
+    console.log("Creating data channel on sender side");
     const peerConnection = peerConn.peerConnection as RTCPeerConnection;
 
     // Triggers negotiationneeded event
@@ -223,11 +226,13 @@ function createDataChannel(label:string) {
     peerConn.dataChannel = dataChannel;
 
     // Sender channel listeners
-    dataChannel.addEventListener("open", handleSendChannelStatusChange);
-    dataChannel.addEventListener("close", handleSendChannelStatusChange);
+    dataChannel.addEventListener("open", () => {
+        handleSendChannelStatusChange.call(dataChannel, message);
+    });
 
-    // Add receive channel request handler
-    peerConnection.addEventListener("datachannel", receiveChannelCallback);
+    dataChannel.addEventListener("close", () => {
+        handleSendChannelStatusChange.call(dataChannel, "");
+    });
 }
 
 async function setRemoteDescription(peerConn: RTCPeerConnection, description: RTCSessionDescription) {
@@ -254,13 +259,11 @@ function sendToSignalingServer(message: ClientMessage) {
     ws.send(JSON.stringify(message));
 }
 
-function handleSendChannelStatusChange(this: RTCDataChannel, event: Event) {
+function handleSendChannelStatusChange(this: RTCDataChannel, message: string) {
     if (this.readyState === "open") {
         console.log("Message send channel is open");
-        console.log("Sending hello message");
-       this.send("HELLO MESSAGE");
-        //setTimeout(() => this.send("HELLO MESSAGE"), 2000);
-
+        console.log(`Sending message ${message}`);
+        this.send(message);
     } else if (this.readyState === "closed") {
         console.log("Message channel is closed");
     }
@@ -269,17 +272,22 @@ function handleSendChannelStatusChange(this: RTCDataChannel, event: Event) {
 function receiveChannelCallback(this: RTCPeerConnection, event: RTCDataChannelEvent) {
     const receiveChannel = event.channel;
     peerConn.dataChannel  = receiveChannel;
+
     receiveChannel.addEventListener("message",  handleReceiveMessage);
-    this.addEventListener("open",  handleReceiveChannelStatusChange);
-    this.addEventListener("close",  handleReceiveChannelStatusChange);
+    receiveChannel.addEventListener("open",  handleReceiveChannelStatusChange);
+    receiveChannel.addEventListener("close",  handleReceiveChannelStatusChange);
 }
 
 function handleReceiveMessage(this:RTCDataChannel, event: MessageEvent) {
+    const receiveMsg = document.querySelector("#received-msg") as HTMLTextAreaElement;
+    receiveMsg.innerText = `Message ${event.data}`
     console.log(`Received event from peer ${event.data}`);
+    this.send(`I received your message ${event.data}`);
 }
 
-function handleReceiveChannelStatusChange(event: Event) {
+function handleReceiveChannelStatusChange() {
     if (peerConn.dataChannel) {
+        console.log(`Adding receive channel on peer connection`);
         const receiveChannel = peerConn.dataChannel;
         console.log(
             `Receive channel's status has changed to ${receiveChannel.readyState}`,
